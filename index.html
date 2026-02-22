@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bible Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <span class="logo">☦ LOGOS STUDY</span>
+  <span class="sep">|</span>
+  <span class="lbl">VERSE</span>
+  <input class="tinput" id="verse-input" value="Genesis 1:1" placeholder="Genesis 1:1" />
+  <button class="tbtn accent" onclick="goSearch()">Go</button>
+  <span class="sep">|</span>
+  <span class="lbl">SEARCH BIBLE</span>
+  <input class="tinput" id="search-input" placeholder="e.g. Jesus, fear not" style="width:160px" />
+  <button class="tbtn" onclick="bibleSearch()">Search All</button>
+  <span id="status">Enter a reference or search for a word above</span>
+</div>
+
+<!-- API KEY ROW -->
+<div id="apirow">
+  <span class="lbl" style="color:#4a7a4a">ANTHROPIC API KEY (for word study &amp; alignment):</span>
+  <input class="tinput" id="apikey" type="password" placeholder="sk-ant-..." style="width:300px;font-family:'JetBrains Mono',monospace;font-size:11px" oninput="updateApiKey(this.value)" />
+  <span style="font-size:11px;color:var(--dim)">Optional — enables Hebrew/Greek word study via Claude</span>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT: Scripture -->
+  <div id="scripture-panel">
+    <div id="scripture-hdr">
+      <span>SCRIPTURE</span>
+      <span id="scripture-ref-lbl" style="color:var(--fg2);font-size:11px;font-style:italic"></span>
+    </div>
+    <div id="scripture-body">
+      <div class="text-area loading" style="background:transparent;padding:40px 0">
+        Enter a verse reference above (e.g. Genesis 1:1, John 3, Matthew) then press Go.
+      </div>
+    </div>
+    <div id="scripture-hint">💡 Click any word → word study &nbsp;|&nbsp; Hover → alignment (with API key)</div>
+  </div>
+
+  <!-- RIGHT: Tabs -->
+  <div id="right-panel">
+    <div id="tabbar">
+      <button class="tab-btn active" onclick="switchTab('study')">📖 Word Study</button>
+      <button class="tab-btn" onclick="switchTab('bsearch')">🔍 Bible Search</button>
+      <button class="tab-btn" onclick="switchTab('orthodox')">☦ Orthodox</button>
+      <button class="tab-btn" onclick="switchTab('plans')">📔 Plans</button>
+      <button class="tab-btn" onclick="switchTab('bookmarks')">🔖 Notes</button>
+      <button class="tab-btn" onclick="switchTab('compare')">⚖ Compare</button>
+      <button class="tab-btn" onclick="switchTab('daily')">🕯 Daily</button>
+      <button class="tab-btn" onclick="switchTab('xrefs')">🔗 Cross-Refs</button>
+      <button class="tab-btn" onclick="switchTab('overview')">📋 Overview</button>
+    </div>
+
+    <!-- WORD STUDY TAB -->
+    <div class="tab-pane active" id="tab-study">
+      <div class="pane-hdr">
+        <span class="pane-title">WORD STUDY</span>
+        <span class="pane-sub" id="study-word-lbl"></span>
+      </div>
+      <div class="pane-divider"></div>
+      <div id="word-split">
+        <div id="word-top">
+          <div class="text-area" id="study-text">
+            <span class="loading">Click any word in the scripture panel to open its word study.<br><br>Works whether you searched a book, chapter, or a specific verse.<br><br>Sources:<br>· BibleHub interlinear (Hebrew/Greek)<br>· Strong's Lexicon<br>· Webster's 1828 Dictionary</span>
+          </div>
+        </div>
+        <div id="word-bottom">
+          <div style="padding:8px 14px 4px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-top:0">
+            <span class="pane-title" style="font-size:12px" id="usages-hdr">USAGES ACROSS THE BIBLE</span>
+            <span class="count-lbl" id="usages-count"></span>
+          </div>
+          <div style="padding:0 14px 4px;display:flex;gap:6px;flex-shrink:0">
+            <span class="radio-btn active" id="usage-all" onclick="setUsageMode('all')">All Books</span>
+            <span class="radio-btn" id="usage-book" onclick="setUsageMode('book')">This Book</span>
+          </div>
+          <div class="text-area" id="usages-text" style="margin:0 14px 14px;border-radius:4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BIBLE SEARCH TAB -->
+    <div class="tab-pane" id="tab-bsearch">
+      <div class="pane-hdr"><span class="pane-title">BIBLE WORD SEARCH</span></div>
+      <div class="pane-divider"></div>
+      <div class="input-row">
+        <span class="lbl">Word or phrase:</span>
+        <input class="inp" id="bs-entry" placeholder="e.g. Jesus, love" style="width:200px" onkeydown="if(event.key==='Enter')runBibleSearch()" />
+        <button class="btn" onclick="runBibleSearch()">Find</button>
+        <span class="count-lbl" id="bs-count"></span>
+      </div>
+      <div class="filter-row">
+        <span class="lbl">Filter:</span>
+        <span class="radio-btn active" id="bs-all" onclick="setBsFilter('all')">All</span>
+        <span class="radio-btn" id="bs-ot" onclick="setBsFilter('ot')">Old Testament</span>
+        <span class="radio-btn" id="bs-nt" onclick="setBsFilter('nt')">New Testament</span>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="bs-text">
+          <span class="loading">Search for any word or phrase across the entire Bible (KJV).<br><br>Examples:<br>· Jesus<br>· in the beginning<br>· fear not<br>· love your enemies<br>· Holy Spirit</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORTHODOX TAB -->
+    <div class="tab-pane" id="tab-orthodox">
+      <div class="pane-hdr"><span class="pane-title">☦ ORTHODOX CHRISTIAN LIBRARY</span></div>
+      <div class="pane-divider"></div>
+      <div id="oc-split">
+        <div id="oc-nav">
+          <div id="oc-search" style="display:flex;gap:6px;padding:6px 8px">
+            <input class="inp" id="ow-entry" placeholder="Search OrthodoxWiki…" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter')runOwSearch()" />
+            <button class="btn" style="font-size:12px;padding:4px 8px" onclick="runOwSearch()">Go</button>
+          </div>
+          <div id="oc-list"></div>
+        </div>
+        <div id="oc-content">
+          <div id="oc-title"></div>
+          <div class="pane-divider" style="margin:0 14px 0"></div>
+          <div class="pane-scroll">
+            <div class="text-area" id="oc-text">
+              <span class="loading">Select a topic from the list on the left to read about Orthodox Christian theology, the Ecumenical Councils, Church Fathers, history, liturgy, and more.<br><br>Or search OrthodoxWiki above for any topic.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANS TAB -->
+    <div class="tab-pane" id="tab-plans">
+      <div class="pane-hdr"><span class="pane-title">📔 READING PLANS</span></div>
+      <div class="pane-divider"></div>
+      <div id="plan-split">
+        <div id="plan-nav">
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;width:100%">Plan</div>
+          <label class="plan-radio active" id="plan-radio-90day"><input type="radio" name="plan" value="90day" checked onchange="loadPlan('90day')"> 90-Day Bible</label>
+          <label class="plan-radio" id="plan-radio-psalms_proverbs"><input type="radio" name="plan" value="psalms_proverbs" onchange="loadPlan('psalms_proverbs')"> Psalms &amp; Proverbs</label>
+          <label class="plan-radio" id="plan-radio-gospels"><input type="radio" name="plan" value="gospels" onchange="loadPlan('gospels')"> Four Gospels</label>
+          <label class="plan-radio" id="plan-radio-nt_30"><input type="radio" name="plan" value="nt_30" onchange="loadPlan('nt_30')"> NT in 30 Days</label>
+          <div class="pane-divider" style="width:100%;margin:8px 0"></div>
+          <div id="plan-progress" style="font-size:11px;color:var(--green);line-height:1.5"></div>
+          <div class="pane-divider" style="width:100%;margin:8px 0"></div>
+          <button class="btn" style="font-size:11px;width:100%" onclick="resetPlan()">Reset Plan</button>
+        </div>
+        <div id="plan-list" style="flex:1;overflow-y:auto;padding:8px 0"></div>
+      </div>
+    </div>
+
+    <!-- BOOKMARKS TAB -->
+    <div class="tab-pane" id="tab-bookmarks">
+      <div class="pane-hdr"><span class="pane-title">🔖 BOOKMARKS &amp; NOTES</span></div>
+      <div class="pane-divider"></div>
+      <div class="input-row">
+        <span class="lbl">Note:</span>
+        <input class="inp" id="bk-note" placeholder="Optional note…" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')saveBookmark()" />
+        <button class="btn accent-btn" onclick="saveBookmark()">Bookmark Current Verse</button>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="bk-text">
+          <span class="loading">No bookmarks yet. Search for a verse and click "Bookmark Current Verse".</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARE TAB -->
+    <div class="tab-pane" id="tab-compare">
+      <div class="pane-hdr"><span class="pane-title">⚖ VERSE COMPARISON</span></div>
+      <div class="pane-divider"></div>
+      <div class="input-row">
+        <span class="lbl">Verse:</span>
+        <input class="inp" id="cmp-entry" value="John 3:16" style="width:160px" onkeydown="if(event.key==='Enter')runCompare()" />
+        <button class="btn" onclick="runCompare()">Compare</button>
+        <button class="btn" onclick="compareCurrent()">Use Current</button>
+      </div>
+      <div id="cmp-sources" class="filter-row" style="gap:6px;padding:0 14px 8px">
+        <span class="lbl">Sources:</span>
+        <span class="check-btn active" data-src="kjv" onclick="toggleCmpSrc(this)">KJV</span>
+        <span class="check-btn active" data-src="tanakh_english" onclick="toggleCmpSrc(this)">Tanakh EN</span>
+        <span class="check-btn active" data-src="septuagint" onclick="toggleCmpSrc(this)">Septuagint</span>
+        <span class="check-btn active" data-src="textus_receptus" onclick="toggleCmpSrc(this)">Textus Rec.</span>
+        <span class="check-btn" data-src="tanakh_hebrew" onclick="toggleCmpSrc(this)">Hebrew</span>
+        <span class="check-btn" data-src="vulgate" onclick="toggleCmpSrc(this)">Vulgate</span>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="cmp-text">
+          <span class="loading">Enter any verse reference above to compare it across all available translations side-by-side.<br><br>Words unique to a translation are highlighted in gold.<br><br>Or click 'Use Current' to compare whatever verse is open in the scripture panel.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAILY VERSE TAB -->
+    <div class="tab-pane" id="tab-daily">
+      <div class="pane-hdr"><span class="pane-title">🕯 VERSE OF THE DAY</span></div>
+      <div class="pane-divider"></div>
+      <div id="dv-nav">
+        <button class="btn" onclick="dvPrev()">◀ Prev</button>
+        <button class="btn" onclick="dvToday()">Today</button>
+        <button class="btn" onclick="dvNext()">Next ▶</button>
+        <button class="btn green-btn" onclick="openDailyVerse()">Open in Scripture</button>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="dv-text"></div>
+      </div>
+    </div>
+
+    <!-- CROSS REFS TAB -->
+    <div class="tab-pane" id="tab-xrefs">
+      <div class="pane-hdr">
+        <span class="pane-title">🔗 CROSS-REFERENCES</span>
+        <span class="pane-sub" id="xr-lbl"></span>
+      </div>
+      <div class="pane-divider"></div>
+      <div class="input-row">
+        <span class="lbl">Verse:</span>
+        <input class="inp" id="xr-entry" value="John 3:16" style="width:150px" onkeydown="if(event.key==='Enter')runXrefs()" />
+        <button class="btn" onclick="runXrefs()">Fetch</button>
+        <button class="btn" onclick="xrefsUseCurrent()">Use Current</button>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="xr-text">
+          <span class="loading">Enter a verse reference above or click 'Use Current' to fetch cross-references.<br><br>Cross-references are verses that theologians have linked thematically across centuries of study.<br><br>Click any reference to open it.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-pane" id="tab-overview">
+      <div class="pane-hdr">
+        <span class="pane-title">📋 CHAPTER OVERVIEW</span>
+        <span class="pane-sub" id="ov-lbl"></span>
+      </div>
+      <div class="pane-divider"></div>
+      <div class="input-row">
+        <span class="lbl">Chapter:</span>
+        <input class="inp" id="ov-entry" value="Genesis 1" style="width:150px" onkeydown="if(event.key==='Enter')runOverview()" />
+        <button class="btn" onclick="runOverview()">Analyse</button>
+        <button class="btn" onclick="overviewUseCurrent()">Use Current</button>
+      </div>
+      <div class="pane-scroll">
+        <div class="text-area" id="ov-text">
+          <span class="loading">Enter a book + chapter above or click 'Use Current' to analyse whatever chapter is open.<br><br>Shows: verse count, key themes, notable names, book context, and quick-jump verse navigation.</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right-panel -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div id="tooltip"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
